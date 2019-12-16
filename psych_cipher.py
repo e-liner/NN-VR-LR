@@ -98,7 +98,7 @@ for epoch in range(0, num_epochs):
         loss = criterion(outputs, labels)
         loss.backward()
 
-        # Check for our extra reinforcement goes here
+        # Check for our extra reinforcement
         _, predicted = torch.max(outputs.data, 1)
         train_total += labels.size(0)
         train_correct += (predicted == labels).sum()
@@ -106,9 +106,11 @@ for epoch in range(0, num_epochs):
         current_correct = (predicted == labels).sum()
         current_incorrect = batch_size - current_correct
 
-        #"""
-        # only issue with doing it this way is that we don't have the
-        # most up to date lr for each example.
+        # only issue with doing it this way within batches is that
+        # we don't have the most up to date lr for each example.
+        # However, the performance increase with batches makes it worthwhile
+
+        # Update learning rate based on correct and incorrect responses
         correct_count += current_correct.item()
         incorrect_count += current_incorrect.item()
         
@@ -128,7 +130,6 @@ for epoch in range(0, num_epochs):
             incorrect_count = 0
 
             incorrect_rand_ratio = getRandom(int(min_rate * 2.5), int(max_rate  * 2.5))
-        #"""
 
         optimizer.step()
 
