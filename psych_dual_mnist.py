@@ -24,8 +24,10 @@ hidden_size = 500       # Hidden nodes
 num_classes = 10        # Output classes - 0-9
 num_epochs = 10         # Number of times we train on the dataset
 batch_size = 1          # Size of input data for a batch
-learning_rate = 0.05   # Speed of convergence
-lr_change = learning_rate * 0.001
+correct_learning_rate = 0.055            # Speed of convergence
+cor_lr_change = correct_learning_rate * 0.0002   # Rate change
+incorrect_learning_rate = 0.0425          # Speed of convergence
+incor_lr_change = incorrect_learning_rate * 0.01 # Rate change
 
 # Download MNIST dataset
 train_dataset = dsets.MNIST(root='./data',
@@ -47,7 +49,8 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 batch_acc_output = []
 epoch_acc_output = []
 dev_acc_output = []
-lr_output = []
+cor_lr_output = []
+incor_lr_output = []
 dev_acc_output = []
 
 # Feedforward Neural Network Model
@@ -69,18 +72,18 @@ model = FFNN(input_size, hidden_size, num_classes)
 
 # Loss Function and Optimizer
 criterion = nn.CrossEntropyLoss()
-#optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-#optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-#optimizer = torch.optim.Adadelta(model.parameters(), lr=learning_rate)
-optimizer = torch.optim.Adagrad(model.parameters(), lr=learning_rate)
+#optimizer = torch.optim.Adam(model.parameters(), lr=correct_learning_rate)
+#optimizer = torch.optim.SGD(model.parameters(), lr=correct_learning_rate)
+#optimizer = torch.optim.Adadelta(model.parameters(), lr=correct_learning_rate)
+optimizer = torch.optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 
 start_time = time.time()
 ndevset = 0 #5000
 nsamples = 10000 # - ndevset
 print_ex = 1000
 save_ex = 1000
-min_rate = 95
-max_rate = 105
+min_rate = 195
+max_rate = 205
 
 # Training
 for epoch in range(0, num_epochs):
@@ -126,30 +129,44 @@ for epoch in range(0, num_epochs):
         current_correct = (predicted == labels).sum()
         current_incorrect = 1 - current_correct # note - only works with batch size 1
         train_correct += (predicted == labels).sum()
+
+
+        # Alright so what's the idea.
+        #   1. Dual learning rates - one for correct answers and one for incorrect answers
+        #   2. The learning rates are updated as we get more and more correct and incorrect answers
+        #       a. The "correct" learning rate is decreased as time goes on
+        #       b. The "incorrect" learning rate is increased as time goes on
+        #      I'm thinking about 0.1%, or even less. We'll play with it depending on the original lr.
+        #
+        # So how does it look?
+        #   Run it through, figure out correctness.
+        #   Determine if we need to update the learning rate and update it (getRandom)
+        #   Use the correct learning rate based on what the answer is.
         
         #"""
+        ex_correct_or_incorrect = 0
         if current_correct.item():
             correct_count += 1
+            ex_correct_or_incorrect = 1
         elif current_incorrect.item():
             incorrect_count += 1
+            ex_correct_or_incorrect = 0
 
         # Update our learning rate based on our correct and incorrect responses
         if correct_count == correct_rand_ratio:
-            learning_rate = learning_rate + lr_change
-
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = learning_rate
+            correct_learning_rate = correct_learning_rate - cor_lr_change
             correct_count = 0
-
             correct_rand_ratio = getRandom(min_rate, max_rate)
         elif incorrect_count == incorrect_rand_ratio:
-            learning_rate = learning_rate - lr_change
-
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = learning_rate
+            incorrect_learning_rate = incorrect_learning_rate + incor_lr_change
             incorrect_count = 0
-
             incorrect_rand_ratio = getRandom(min_rate, max_rate)
+
+        for param_group in optimizer.param_groups:
+            if ex_correct_or_incorrect:
+                param_group['lr'] = correct_learning_rate
+            else:
+                param_group['lr'] = incorrect_learning_rate
         #"""
 
         optimizer.step()
@@ -157,7 +174,8 @@ for epoch in range(0, num_epochs):
         if (i+1) % save_ex == 0:
             b_acc = (100. * train_correct.item() / train_total)
             batch_acc_output.append(b_acc)
-            lr_output.append(learning_rate)
+            cor_lr_output.append(correct_learning_rate)
+            incor_lr_output.append(incorrect_learning_rate)
         if (i+1) % print_ex == 0:
             print("Epoch [%d/%d], Step [%d/%d]" % (epoch+1, num_epochs,
                         i+1, len(train_dataset)//batch_size))
@@ -175,7 +193,8 @@ print("Training acc per %d exs: " % print_ex, batch_acc_output)
 print("Training acc per epoch: ", epoch_acc_output)
 #print("Dev acc per epoch:", dev_acc_output)
 print("Training time is", (end_time - start_time))
-print("Final Learning rate is", learning_rate)
+print("Final Correct Learning rate is", correct_learning_rate)
+print("Final Incorrect Learning rate is", incorrect_learning_rate)
 
 # Testing
 correct = 0.
@@ -194,8 +213,10 @@ batch_print = numpy.asarray(batch_acc_output)
 numpy.savetxt("b_out.csv", batch_print, delimiter=",")
 epoch_print = numpy.asarray(epoch_acc_output)
 numpy.savetxt("e_out.csv", epoch_print, delimiter=",")
-lr_print = numpy.asarray(lr_output)
-numpy.savetxt("lr_out.csv", lr_print, delimiter=",")
+cor_lr_print = numpy.asarray(cor_lr_output)
+numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
+incor_lr_print = numpy.asarray(incor_lr_output)
+numpy.savetxt("incor_lr_out.csv", incor_lr_print, delimiter=",")
 #dev_print = numpy.asarray(dev_acc_output)
 #numpy.savetxt("d_out.csv", dev_print, delimiter=",")
 
