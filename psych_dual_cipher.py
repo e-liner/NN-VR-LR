@@ -66,8 +66,6 @@ cor_lr_change = correct_learning_rate * 0.0004
 incorrect_learning_rate = 0.025
 incor_lr_change = incorrect_learning_rate * 0.00225
 
-#learning_rate = 0.001
-#lr_change = 0.001 * 0.001
 momentum = 0.9
 num_epochs = 10
 
@@ -120,12 +118,10 @@ for epoch in range(0, num_epochs):
         #"""
         # Update learning rate based on correct and incorrect responses
         ex_correct_or_incorrect = 0
-        #if current_correct.item():
         if current_correct >= current_incorrect:
             correct_count += current_correct
             incorrect_count += current_incorrect
             ex_correct_or_incorrect = 1
-        #elif current_incorrect.item():
         else:
             correct_count += current_correct
             incorrect_count += current_incorrect
@@ -202,7 +198,6 @@ with torch.no_grad():
             if batch_size == 1 and c.item():
                 class_correct[label] += 1
             elif batch_size > 1:
-                #print("eliner. c[i] is", c[i])
                 class_correct[label] += c[i].item()
             class_total[label] += 1
             
