@@ -23,11 +23,11 @@ input_size = 784        # Image size = 28x28 = 784
 hidden_size = 500       # Hidden nodes
 num_classes = 10        # Output classes - 0-9
 num_epochs = 10         # Number of times we train on the dataset
-batch_size = 1          # Size of input data for a batch
-correct_learning_rate = 0.055            # Speed of convergence
-cor_lr_change = correct_learning_rate * 0.0002   # Rate change
-incorrect_learning_rate = 0.0425          # Speed of convergence
-incor_lr_change = incorrect_learning_rate * 0.01 # Rate change
+batch_size = 10          # Size of input data for a batch
+correct_learning_rate = 0.05            # Speed of convergence
+cor_lr_change = correct_learning_rate * 0.000125   # Rate change
+incorrect_learning_rate = 0.05          # Speed of convergence
+incor_lr_change = incorrect_learning_rate * 0.02 # Rate change
 
 # Download MNIST dataset
 train_dataset = dsets.MNIST(root='./data',
@@ -79,9 +79,9 @@ optimizer = torch.optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 
 start_time = time.time()
 ndevset = 0 #5000
-nsamples = 10000 # - ndevset
-print_ex = 1000
-save_ex = 1000
+nsamples = 1000 # - ndevset
+print_ex = 100
+save_ex = 100
 min_rate = 195
 max_rate = 205
 
@@ -96,8 +96,9 @@ for epoch in range(0, num_epochs):
     correct_rand_ratio = getRandom(min_rate, max_rate)
     incorrect_rand_ratio = getRandom(min_rate, max_rate)
     for i, (images, labels) in enumerate(train_loader):
-        if i > (nsamples + ndevset):
-            break
+        #if i > (nsamples + ndevset):
+        #    break
+        """
         if i > nsamples:
             # Test out dev set
             images = Variable(images.view(-1, 28*28))
@@ -113,6 +114,7 @@ for epoch in range(0, num_epochs):
                     % (epoch+1, num_epochs, i+1, len(train_dataset)//batch_size))
 
             continue
+        """
 
         images = Variable(images.view(-1, 28*28))
         labels = Variable(labels)
@@ -127,7 +129,7 @@ for epoch in range(0, num_epochs):
         _, predicted = torch.max(outputs.data, 1)
         train_total += labels.size(0)
         current_correct = (predicted == labels).sum()
-        current_incorrect = 1 - current_correct # note - only works with batch size 1
+        current_incorrect = batch_size - current_correct
         train_correct += (predicted == labels).sum()
 
 
@@ -145,19 +147,21 @@ for epoch in range(0, num_epochs):
         
         #"""
         ex_correct_or_incorrect = 0
-        if current_correct.item():
-            correct_count += 1
+        if current_correct >= current_incorrect:
+            correct_count += current_correct
+            incorrect_count += current_incorrect
             ex_correct_or_incorrect = 1
-        elif current_incorrect.item():
-            incorrect_count += 1
+        else:
+            correct_count += current_correct
+            incorrect_count += current_incorrect
             ex_correct_or_incorrect = 0
 
         # Update our learning rate based on our correct and incorrect responses
-        if correct_count == correct_rand_ratio:
+        if correct_count >= correct_rand_ratio:
             correct_learning_rate = correct_learning_rate - cor_lr_change
             correct_count = 0
             correct_rand_ratio = getRandom(min_rate, max_rate)
-        elif incorrect_count == incorrect_rand_ratio:
+        elif incorrect_count >= incorrect_rand_ratio:
             incorrect_learning_rate = incorrect_learning_rate + incor_lr_change
             incorrect_count = 0
             incorrect_rand_ratio = getRandom(min_rate, max_rate)

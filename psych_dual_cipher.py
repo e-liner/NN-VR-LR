@@ -38,7 +38,7 @@ class CNN(nn.Module):
         x = self.fc3(x)
         return x
 
-batch_size = 5
+batch_size = 10
 
 # Get data and transform it into tensors
 transform = transforms.Compose(
@@ -61,10 +61,10 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 model = CNN()
 
 # Parameters
-correct_learning_rate = 0.055
-cor_lr_change = correct_learning_rate * 0.00025
-incorrect_learning_rate = 0.04
-incor_lr_change = incorrect_learning_rate * 0.0025
+correct_learning_rate = 0.025
+cor_lr_change = correct_learning_rate * 0.0004
+incorrect_learning_rate = 0.025
+incor_lr_change = incorrect_learning_rate * 0.00225
 
 #learning_rate = 0.001
 #lr_change = 0.001 * 0.001
@@ -75,15 +75,16 @@ batch_acc_output = []
 epoch_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
-print_ex = 1000
-min_rate = 745
-max_rate = 755
+print_ex = 100
+min_rate = 245
+max_rate = 252
 
 # Loss Function and optimizer
 criterion = nn.CrossEntropyLoss()
-#optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+#optimizer = optim.SGD(model.parameters(), lr=correct_learning_rate, momentum=momentum)
 optimizer = optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 #optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
+#optimizer = optim.Adam(model.parameters(), lr=correct_learning_rate)
 
 start_time = time.time()
 
@@ -194,8 +195,6 @@ with torch.no_grad():
         correct += (predicted == labels).sum().item()
 
         c = (predicted == labels).squeeze()
-        #print(c)
-        #print(len(c.size()) == 0)
         if (len(c.size()) == 0):
             continue
         for i in range(batch_size):
