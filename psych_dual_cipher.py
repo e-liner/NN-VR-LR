@@ -71,6 +71,7 @@ num_epochs = 10
 
 batch_acc_output = []
 epoch_acc_output = []
+batch_test_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
 print_ex = 100
@@ -149,11 +150,31 @@ for epoch in range(0, num_epochs):
         # Print stats
         running_loss += loss.item()
         if i % print_ex == 0:
+
+            # Grab test accuracy:
+            
+            # Test the Network
+            test_correct = 0.
+            test_total = 0.
+            with torch.no_grad():
+                for data in testloader:
+                    test_images, test_labels = data
+                    test_outputs = model(test_images)
+                    _, test_predicted = torch.max(test_outputs.data, 1)
+                    test_total += test_labels.size(0)
+                    test_correct += (test_predicted == test_labels).sum().item()
+
+                    c_test = (test_predicted == test_labels).squeeze()
+                    if (len(c_test.size()) == 0):
+                        continue
+
             print('[%d, %5d] loss: %.3f, correct lr is %f, incorrect lr is %f' % (epoch, i, running_loss / 2000,
                                                                                   correct_learning_rate, incorrect_learning_rate))
             running_loss = 0.0
             b_acc = (100. * train_correct.item() / train_total)
+            test_acc = (100. * test_correct / test_total)
             batch_acc_output.append(b_acc)
+            batch_test_acc_output.append(test_acc)
             cor_lr_output.append(correct_learning_rate)
             incor_lr_output.append(incorrect_learning_rate)
 
@@ -216,6 +237,8 @@ incor_lr_print = numpy.asarray(incor_lr_output)
 numpy.savetxt("incor_lr_out.csv", incor_lr_print, delimiter=",")
 cor_lr_print = numpy.asarray(cor_lr_output)
 numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
+test_batch_print = numpy.asarray(batch_test_acc_output)
+numpy.savetxt("tb_out.csv", test_batch_print, delimiter=",")
 
 
 
