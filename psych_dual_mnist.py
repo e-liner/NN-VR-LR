@@ -46,13 +46,10 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                             batch_size=batch_size,
                                             shuffle=False)
 
-#batch_acc_output = []
 test_epoch_acc_output = []
 epoch_acc_output = []
-#dev_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
-#dev_acc_output = []
 
 # Feedforward Neural Network Model
 class FFNN(nn.Module):
@@ -79,10 +76,6 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 
 start_time = time.time()
-ndevset = 0 #5000
-nsamples = 1000 # - ndevset
-print_ex = 500
-save_ex = 500
 min_rate = 395
 max_rate = 405
 
@@ -97,25 +90,6 @@ for epoch in range(0, num_epochs):
     correct_rand_ratio = getRandom(min_rate, max_rate)
     incorrect_rand_ratio = getRandom(min_rate, max_rate)
     for i, (images, labels) in enumerate(train_loader):
-        #if i > (nsamples + ndevset):
-        #    break
-        """
-        if i > nsamples:
-            # Test out dev set
-            images = Variable(images.view(-1, 28*28))
-            labels = Variable(labels)
-
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            dev_total += labels.size(0)
-            dev_correct += (predicted == labels).sum().item()
-
-            if i % 1000 == 0:
-                print("Epoch [%d/%d], Step [%d/%d], Calculating Dev Accuracy..."
-                    % (epoch+1, num_epochs, i+1, len(train_dataset)//batch_size))
-
-            continue
-        """
 
         images = Variable(images.view(-1, 28*28))
         labels = Variable(labels)
@@ -125,7 +99,6 @@ for epoch in range(0, num_epochs):
         loss = criterion(outputs, labels)
         loss.backward()
 
-        
         # Checking for our extra reinforcement
         _, predicted = torch.max(outputs.data, 1)
         train_total += labels.size(0)
@@ -133,20 +106,15 @@ for epoch in range(0, num_epochs):
         current_incorrect = batch_size - current_correct
         train_correct += (predicted == labels).sum()
 
-
         # Alright so what's the idea.
         #   1. Dual learning rates - one for correct answers and one for incorrect answers
         #   2. The learning rates are updated as we get more and more correct and incorrect answers
-        #       a. The "correct" learning rate is decreased as time goes on
-        #       b. The "incorrect" learning rate is increased as time goes on
-        #      I'm thinking about 0.1%, or even less. We'll play with it depending on the original lr.
         #
-        # So how does it look?
+        # Steps:
         #   Run it through, figure out correctness.
         #   Determine if we need to update the learning rate and update it (getRandom)
         #   Use the correct learning rate based on what the answer is.
         
-        #"""
         ex_correct_or_incorrect = 0
         if current_correct >= current_incorrect:
             correct_count += current_correct
@@ -172,35 +140,9 @@ for epoch in range(0, num_epochs):
                 param_group['lr'] = correct_learning_rate
             else:
                 param_group['lr'] = incorrect_learning_rate
-        #"""
 
         optimizer.step()
 
-        """
-        if (i+1) % save_ex == 0:
-
-            # Grab test accuracy
-            test_correct = 0.
-            test_total = 0.
-            for test_images, test_labels in test_loader:
-                test_images = Variable(test_images.view(-1, 28*28))
-                test_outputs = model(test_images)
-                _, test_predicted = torch.max(test_outputs.data, 1)
-                test_total += test_labels.size(0)
-                test_correct += (test_predicted == test_labels).sum()
-
-            test_correct = test_correct.item()
-            
-            b_acc = (100. * train_correct.item() / train_total)
-            batch_acc_output.append(b_acc)
-            test_acc = (100. * test_correct / test_total)
-            test_batch_acc_output.append(test_acc)
-            cor_lr_output.append(correct_learning_rate)
-            incor_lr_output.append(incorrect_learning_rate)
-        if (i+1) % print_ex == 0:
-            print("Epoch [%d/%d], Step [%d/%d]" % (epoch+1, num_epochs,
-                        i+1, len(train_dataset)//batch_size))
-        """
     # Grab test accuracy
     test_correct = 0.
     test_total = 0.
@@ -222,36 +164,13 @@ for epoch in range(0, num_epochs):
     print("Accuracy of network for this batch: %.4f %%" % (e_acc))
     epoch_acc_output.append(e_acc)
     
-    #dev_acc = (100. * dev_correct / dev_total)
-    #print("Dev accuracy of network for this batch: %.4f %%" % (dev_acc))
-    #dev_acc_output.append(dev_acc)
-
 end_time = time.time()
-#print("Training acc per %d exs: " % print_ex, batch_acc_output)
 print("Training acc per epoch: ", epoch_acc_output)
 print("Testing acc per epoch: ", test_epoch_acc_output)
-#print("Dev acc per epoch:", dev_acc_output)
 print("Training time is", (end_time - start_time))
 print("Final Correct Learning rate is", correct_learning_rate)
 print("Final Incorrect Learning rate is", incorrect_learning_rate)
 
-# Testing
-"""
-correct = 0.
-total = 0.
-for images, labels in test_loader:
-    images = Variable(images.view(-1, 28*28))
-    outputs = model(images)
-    _, predicted = torch.max(outputs.data, 1)
-    total += labels.size(0)
-    correct += (predicted == labels).sum()
-
-correct = correct.item()
-print("Accuracy of the network on the 10K test images: %.4f %%" % (100. * correct / total))
-"""
-
-#batch_print = numpy.asarray(batch_acc_output)
-#numpy.savetxt("b_out.csv", batch_print, delimiter=",")
 test_epoch_print = numpy.asarray(test_epoch_acc_output)
 numpy.savetxt("test_out.csv", test_epoch_print, delimiter=",")
 epoch_print = numpy.asarray(epoch_acc_output)
@@ -260,6 +179,4 @@ cor_lr_print = numpy.asarray(cor_lr_output)
 numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
 incor_lr_print = numpy.asarray(incor_lr_output)
 numpy.savetxt("incor_lr_out.csv", incor_lr_print, delimiter=",")
-#dev_print = numpy.asarray(dev_acc_output)
-#numpy.savetxt("d_out.csv", dev_print, delimiter=",")
 
