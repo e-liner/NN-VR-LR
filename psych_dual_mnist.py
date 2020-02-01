@@ -25,9 +25,9 @@ num_classes = 10        # Output classes - 0-9
 num_epochs = 10         # Number of times we train on the dataset
 batch_size = 10          # Size of input data for a batch
 correct_learning_rate = 0.05            # Speed of convergence
-cor_lr_change = correct_learning_rate * 0. #0.000125   # Rate change
+cor_lr_change = correct_learning_rate * 0.000125   # Rate change
 incorrect_learning_rate = 0.05          # Speed of convergence
-incor_lr_change = incorrect_learning_rate * 0 #0.02 # Rate change
+incor_lr_change = incorrect_learning_rate * 0.02 # Rate change
 
 # Download MNIST dataset
 train_dataset = dsets.MNIST(root='./data',
@@ -46,13 +46,13 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                             batch_size=batch_size,
                                             shuffle=False)
 
-batch_acc_output = []
-test_batch_acc_output = []
+#batch_acc_output = []
+test_epoch_acc_output = []
 epoch_acc_output = []
-dev_acc_output = []
+#dev_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
-dev_acc_output = []
+#dev_acc_output = []
 
 # Feedforward Neural Network Model
 class FFNN(nn.Module):
@@ -81,10 +81,10 @@ optimizer = torch.optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 start_time = time.time()
 ndevset = 0 #5000
 nsamples = 1000 # - ndevset
-print_ex = 100
-save_ex = 100
-min_rate = 195
-max_rate = 205
+print_ex = 500
+save_ex = 500
+min_rate = 395
+max_rate = 405
 
 # Training
 for epoch in range(0, num_epochs):
@@ -176,6 +176,7 @@ for epoch in range(0, num_epochs):
 
         optimizer.step()
 
+        """
         if (i+1) % save_ex == 0:
 
             # Grab test accuracy
@@ -199,7 +200,24 @@ for epoch in range(0, num_epochs):
         if (i+1) % print_ex == 0:
             print("Epoch [%d/%d], Step [%d/%d]" % (epoch+1, num_epochs,
                         i+1, len(train_dataset)//batch_size))
+        """
+    # Grab test accuracy
+    test_correct = 0.
+    test_total = 0.
+    for test_images, test_labels in test_loader:
+        test_images = Variable(test_images.view(-1, 28*28))
+        test_outputs = model(test_images)
+        _, test_predicted = torch.max(test_outputs.data, 1)
+        test_total += test_labels.size(0)
+        test_correct += (test_predicted == test_labels).sum()
 
+        test_correct = test_correct.item()
+            
+    test_acc = (100. * test_correct / test_total)
+    test_epoch_acc_output.append(test_acc)
+    cor_lr_output.append(correct_learning_rate)
+    incor_lr_output.append(incorrect_learning_rate)
+        
     e_acc = (100. * train_correct.item() / train_total)
     print("Accuracy of network for this batch: %.4f %%" % (e_acc))
     epoch_acc_output.append(e_acc)
@@ -209,14 +227,16 @@ for epoch in range(0, num_epochs):
     #dev_acc_output.append(dev_acc)
 
 end_time = time.time()
-print("Training acc per %d exs: " % print_ex, batch_acc_output)
+#print("Training acc per %d exs: " % print_ex, batch_acc_output)
 print("Training acc per epoch: ", epoch_acc_output)
+print("Testing acc per epoch: ", test_epoch_acc_output)
 #print("Dev acc per epoch:", dev_acc_output)
 print("Training time is", (end_time - start_time))
 print("Final Correct Learning rate is", correct_learning_rate)
 print("Final Incorrect Learning rate is", incorrect_learning_rate)
 
 # Testing
+"""
 correct = 0.
 total = 0.
 for images, labels in test_loader:
@@ -228,11 +248,12 @@ for images, labels in test_loader:
 
 correct = correct.item()
 print("Accuracy of the network on the 10K test images: %.4f %%" % (100. * correct / total))
+"""
 
-batch_print = numpy.asarray(batch_acc_output)
-numpy.savetxt("b_out.csv", batch_print, delimiter=",")
-test_batch_print = numpy.asarray(test_batch_acc_output)
-numpy.savetxt("test_out.csv", test_batch_print, delimiter=",")
+#batch_print = numpy.asarray(batch_acc_output)
+#numpy.savetxt("b_out.csv", batch_print, delimiter=",")
+test_epoch_print = numpy.asarray(test_epoch_acc_output)
+numpy.savetxt("test_out.csv", test_epoch_print, delimiter=",")
 epoch_print = numpy.asarray(epoch_acc_output)
 numpy.savetxt("e_out.csv", epoch_print, delimiter=",")
 cor_lr_print = numpy.asarray(cor_lr_output)
