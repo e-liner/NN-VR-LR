@@ -61,22 +61,22 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 model = CNN()
 
 # Parameters
-correct_learning_rate = 0.025
+correct_learning_rate = 0.03
 cor_lr_change = correct_learning_rate * 0.0004
-incorrect_learning_rate = 0.025
+incorrect_learning_rate = 0.02
 incor_lr_change = incorrect_learning_rate * 0.00225
 
 momentum = 0.9
 num_epochs = 10
 
-batch_acc_output = []
+#batch_acc_output = []
 epoch_acc_output = []
-batch_test_acc_output = []
+epoch_test_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
-print_ex = 100
-min_rate = 245
-max_rate = 252
+print_ex = 500
+min_rate = 745
+max_rate = 755
 
 # Loss Function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -129,11 +129,11 @@ for epoch in range(0, num_epochs):
             ex_correct_or_incorrect = 0
 
         if correct_count >= correct_rand_ratio:
-            correct_learning_rate = correct_learning_rate - cor_lr_change
+            correct_learning_rate = correct_learning_rate + cor_lr_change
             correct_count = 0
             correct_rand_ratio = getRandom(int(min_rate), int(max_rate))
         if incorrect_count >= incorrect_rand_ratio:
-            incorrect_learning_rate = incorrect_learning_rate + incor_lr_change
+            incorrect_learning_rate = incorrect_learning_rate - incor_lr_change
             incorrect_count = 0
             incorrect_rand_ratio = getRandom(int(min_rate * 2.5), int(max_rate  * 2.5))
 
@@ -149,45 +149,38 @@ for epoch in range(0, num_epochs):
 
         # Print stats
         running_loss += loss.item()
-        if i % print_ex == 0:
+        
+        #if i % print_ex == 0:
 
-            # Grab test accuracy:
+    # Test the Network
+    test_correct = 0.
+    test_total = 0.
+    with torch.no_grad():
+        for data in testloader:
+            test_images, test_labels = data
+            test_outputs = model(test_images)
+            _, test_predicted = torch.max(test_outputs.data, 1)
+            test_total += test_labels.size(0)
+            test_correct += (test_predicted == test_labels).sum().item()
+
+            c_test = (test_predicted == test_labels).squeeze()
+            if (len(c_test.size()) == 0):
+                continue
             
-            # Test the Network
-            test_correct = 0.
-            test_total = 0.
-            with torch.no_grad():
-                for data in testloader:
-                    test_images, test_labels = data
-                    test_outputs = model(test_images)
-                    _, test_predicted = torch.max(test_outputs.data, 1)
-                    test_total += test_labels.size(0)
-                    test_correct += (test_predicted == test_labels).sum().item()
-
-                    c_test = (test_predicted == test_labels).squeeze()
-                    if (len(c_test.size()) == 0):
-                        continue
-
-            print('[%d, %5d] loss: %.3f, correct lr is %f, incorrect lr is %f' % (epoch, i, running_loss / 2000,
-                                                                                  correct_learning_rate, incorrect_learning_rate))
-            running_loss = 0.0
-            b_acc = (100. * train_correct.item() / train_total)
-            test_acc = (100. * test_correct / test_total)
-            batch_acc_output.append(b_acc)
-            batch_test_acc_output.append(test_acc)
-            cor_lr_output.append(correct_learning_rate)
-            incor_lr_output.append(incorrect_learning_rate)
-
-
+    test_acc = (100. * test_correct / test_total)
+    epoch_test_acc_output.append(test_acc)
+    cor_lr_output.append(correct_learning_rate)
+    incor_lr_output.append(incorrect_learning_rate)
     e_acc = (100. * train_correct.item() / train_total)
     print("Accuracy of the network for this batch: %.4f %%" % (e_acc))
     epoch_acc_output.append(e_acc)
+
     
 
 end_time = time.time()
 print("Finished Training in %d time" % (end_time - start_time))
-print("Training acc per %d exs: " % print_ex, batch_acc_output)
 print("Training acc per epoch: ", epoch_acc_output)
+print("Training acc per epoch: ", epoch_test_acc_output)
 print("Training time is", (end_time - start_time))
 print("Final Correct Learning rate is", correct_learning_rate)
 print("Final Incorrect Learning rate is", incorrect_learning_rate)
@@ -198,6 +191,7 @@ print("Final Incorrect Learning rate is", incorrect_learning_rate)
 PATH = './cifar_net.pth'
 torch.save(model.state_dict(), PATH)
 
+"""
 # Test the Network
 correct = 0.
 total = 0.
@@ -222,23 +216,23 @@ with torch.no_grad():
                 class_correct[label] += c[i].item()
             class_total[label] += 1
             
-
 print('Accuracy of the network on the 10000 test images: %0.4f %%' % (100. * correct / total))
 
 for i in range(10):
     print('Accuracy of %5s : %0.4f %%' % (
         classes[i], (100. * class_correct[i]) / class_total[i]))
+"""
 
-batch_print = numpy.asarray(batch_acc_output)
-numpy.savetxt("b_out.csv", batch_print, delimiter=",")
+#batch_print = numpy.asarray(batch_acc_output)
+#numpy.savetxt("b_out.csv", batch_print, delimiter=",")
 epoch_print = numpy.asarray(epoch_acc_output)
 numpy.savetxt("e_out.csv", epoch_print, delimiter=",")
 incor_lr_print = numpy.asarray(incor_lr_output)
 numpy.savetxt("incor_lr_out.csv", incor_lr_print, delimiter=",")
 cor_lr_print = numpy.asarray(cor_lr_output)
 numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
-test_batch_print = numpy.asarray(batch_test_acc_output)
-numpy.savetxt("tb_out.csv", test_batch_print, delimiter=",")
+test_epoch_print = numpy.asarray(epoch_test_acc_output)
+numpy.savetxt("t_out.csv", test_epoch_print, delimiter=",")
 
 
 
