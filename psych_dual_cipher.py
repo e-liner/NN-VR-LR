@@ -61,10 +61,10 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 model = CNN()
 
 # Parameters
-correct_learning_rate = 0.025
+correct_learning_rate = 0.05
 cor_lr_change = correct_learning_rate * 0.0004
-incorrect_learning_rate = 0.025
-incor_lr_change = incorrect_learning_rate * 0.00225
+incorrect_learning_rate = 0.015
+incor_lr_change = incorrect_learning_rate * 0.0025
 
 momentum = 0.9
 num_epochs = 10
@@ -73,8 +73,8 @@ epoch_acc_output = []
 epoch_test_acc_output = []
 cor_lr_output = []
 incor_lr_output = []
-min_rate = 745
-max_rate = 755
+min_rate = 245
+max_rate = 252
 
 # Loss Function and optimizer
 criterion = nn.CrossEntropyLoss()
