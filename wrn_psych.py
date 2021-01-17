@@ -417,10 +417,20 @@ model = resnet18()
 
 #Parameters
 cor_lr = 0.01
+cor_lr_delta = cor_lr * 0
+incor_lr = 0.01
+incor_lr_delta = incor_lr * 0
+
 num_epochs = 10
 
 epoch_acc_output = []
 epoch_test_acc_output = []
+cor_lr_output = []
+incor_lr_output = []
+cor_min_rate = 100
+cor_max_rate = 100
+incor_min_rate = 100
+incor_max_rate = 100
 
 #optimizer = optim.Adam(model.parameters(), lr=cor_lr)
 optimizer = optim.SGD(model.parameters(), lr=cor_lr, momentum=0.9)
@@ -432,6 +442,10 @@ start_time = time.time()
 for epoch in range(0, num_epochs):
     train_correct = 0.
     train_total = 0.
+    correct_count = 0
+    incorrect_count = 0
+    correct_rand_ratio = getRandom(cor_min_rate, cor_max_rate)
+    incorrect_rand_ratio = getRandom(incor_min_rate, incor_max_rate)
     for i, data in enumerate(trainloader):
         inputs, labels = data
         optimizer.zero_grad()
@@ -444,6 +458,47 @@ for epoch in range(0, num_epochs):
         _, predicted = torch.max(outputs.data, 1)
         train_total += labels.size(0)
         train_correct += (predicted == labels).sum()
+
+        current_correct = (predicted == labels).sum()
+        current_incorrect = batch_size - current_correct
+        
+        # only issue with doing it this way within batches is that
+        # we don't have the most up to date lr for each example.
+        # However, the performance increase with batches makes it worthwhile
+
+        # Update learning rate based on correct and incorrect responses
+        ex_correct_or_incorrect = 0
+        if current_correct >= current_incorrect:
+            correct_count += current_correct
+            incorrect_count += current_incorrect
+            ex_correct_or_incorrect = 1
+        else:
+            correct_count += current_correct
+            incorrect_count += current_incorrect
+            ex_correct_or_incorrect = 0
+
+        if correct_count >= correct_rand_ratio:
+            cor_lr = cor_lr - cor_lr_delta
+            correct_count = 0
+            correct_rand_ratio = getRandom(int(cor_min_rate), int(cor_max_rate))
+            
+            if cor_lr < 0:
+                cor_lr = 0.000001    # change this to 0.0300001 maybe?
+
+        if incorrect_count >= incorrect_rand_ratio:
+            incor_lr = incor_lr + incor_lr_delta
+            incorrect_count = 0
+            incorrect_rand_ratio = getRandom(int(incor_min_rate), int(incor_max_rate)) # *2.5 ?
+            if incor_lr < 0:
+                incor_lr = 0.000001
+
+
+        for param_group in optimizer.param_groups:
+            if ex_correct_or_incorrect: 
+                param_group['lr'] = cor_lr
+            else:
+                param_group['lr'] = incor_lr
+
 
         optimizer.step()
 
@@ -464,6 +519,8 @@ for epoch in range(0, num_epochs):
 
     test_acc = (100. * test_correct / test_total)
     epoch_test_acc_output.append(test_acc)
+    cor_lr_output.append(cor_lr)
+    incor_lr_output.append(incor_lr)
     e_acc = (100. * train_correct.item() / train_total)
     print("Accuracy of the network for this batch: %.4f %%" % (e_acc))
     epoch_acc_output.append(e_acc)
@@ -472,11 +529,17 @@ end_time = time.time()
 print("Finished training in %d time" % (end_time - start_time))
 print("Training acc per epoch: ", epoch_acc_output)
 print("Testing acc per epoch: ", epoch_test_acc_output)
+print("Final Correct Learning rate is", cor_lr)
+print("Final Incorrect Learning rate is", incor_lr)
 
 epoch_print = numpy.asarray(epoch_acc_output)
 numpy.savetxt("e_out.csv", epoch_print, delimiter=",")
 test_epoch_print = numpy.asarray(epoch_test_acc_output)
 numpy.savetxt("t_out.csv", test_epoch_print, delimiter=",")
+incor_lr_print = numpy.asarray(incor_lr_output)
+numpy.savetxt("incor_lr_out.csv", incor_lr_print, delimiter=",")
+cor_lr_print = numpy.asarray(cor_lr_output)
+numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
 
 
 
