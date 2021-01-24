@@ -23,11 +23,11 @@ input_size = 784        # Image size = 28x28 = 784
 hidden_size = 500       # Hidden nodes
 num_classes = 10        # Output classes - 0-9
 num_epochs = 10         # Number of times we train on the dataset
-batch_size = 10          # Size of input data for a batch
-correct_learning_rate = 0.05            # Speed of convergence
-cor_lr_change = correct_learning_rate * 0.000125   # Rate change
-incorrect_learning_rate = 0.05          # Speed of convergence
-incor_lr_change = incorrect_learning_rate * 0.02 # Rate change
+batch_size = 100          # Size of input data for a batch
+correct_learning_rate = 0.075           # Speed of convergence
+cor_lr_change = correct_learning_rate * 0   # Rate change
+incorrect_learning_rate = 0.025          # Speed of convergence
+incor_lr_change = incorrect_learning_rate * 0 # Rate change
 
 # Download MNIST dataset
 train_dataset = dsets.MNIST(root='./data',
@@ -76,8 +76,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adagrad(model.parameters(), lr=correct_learning_rate)
 
 start_time = time.time()
-min_rate = 395
-max_rate = 405
+cor_min_rate = 19995
+cor_max_rate = 20005
+incor_min_rate = 67
+incor_max_rate = 72
 
 # Training
 for epoch in range(0, num_epochs):
@@ -87,8 +89,8 @@ for epoch in range(0, num_epochs):
     dev_total = 0.
     correct_count = 0
     incorrect_count = 0
-    correct_rand_ratio = getRandom(min_rate, max_rate)
-    incorrect_rand_ratio = getRandom(min_rate, max_rate)
+    correct_rand_ratio = getRandom(cor_min_rate, cor_max_rate)
+    incorrect_rand_ratio = getRandom(incor_min_rate, incor_max_rate)
     for i, (images, labels) in enumerate(train_loader):
 
         images = Variable(images.view(-1, 28*28))
@@ -129,11 +131,11 @@ for epoch in range(0, num_epochs):
         if correct_count >= correct_rand_ratio:
             correct_learning_rate = correct_learning_rate - cor_lr_change
             correct_count = 0
-            correct_rand_ratio = getRandom(min_rate, max_rate)
+            correct_rand_ratio = getRandom(cor_min_rate, cor_max_rate)
         elif incorrect_count >= incorrect_rand_ratio:
             incorrect_learning_rate = incorrect_learning_rate + incor_lr_change
             incorrect_count = 0
-            incorrect_rand_ratio = getRandom(min_rate, max_rate)
+            incorrect_rand_ratio = getRandom(incor_min_rate, incor_max_rate)
 
         for param_group in optimizer.param_groups:
             if ex_correct_or_incorrect:
@@ -174,7 +176,7 @@ print("Final Incorrect Learning rate is", incorrect_learning_rate)
 test_epoch_print = numpy.asarray(test_epoch_acc_output)
 numpy.savetxt("test_out.csv", test_epoch_print, delimiter=",")
 epoch_print = numpy.asarray(epoch_acc_output)
-numpy.savetxt("e_out.csv", epoch_print, delimiter=",")
+numpy.savetxt("train_out.csv", epoch_print, delimiter=",")
 cor_lr_print = numpy.asarray(cor_lr_output)
 numpy.savetxt("cor_lr_out.csv", cor_lr_print, delimiter=",")
 incor_lr_print = numpy.asarray(incor_lr_output)
